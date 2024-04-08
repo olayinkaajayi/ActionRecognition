@@ -1,0 +1,79 @@
+import os
+import math
+import torch
+import matplotlib.pyplot as plt
+import torch.nn as nn
+import numpy as np
+import torch.nn.functional as F
+
+
+def initialize_weight(x):
+    nn.init.xavier_uniform_(x.weight)
+    if x.bias is not None:
+        nn.init.constant_(x.bias, 0)
+
+
+
+class FeedForwardNetwork(nn.Module): #consider using MLP module for this. It has batchnorm in it.
+    def __init__(self, hidden_size, filter_size, dropout_rate=0.1):
+        super(FeedForwardNetwork, self).__init__()
+
+        self.layer1 = nn.Linear(hidden_size, filter_size)
+        self.relu = nn.ReLU()
+        self.dropout = nn.Dropout(dropout_rate)
+        self.layer2 = nn.Linear(filter_size, hidden_size)
+
+        initialize_weight(self.layer1)
+        initialize_weight(self.layer2)
+
+    def forward(self, x):
+        x = self.layer1(x)
+        x = self.relu(x)
+        x = self.dropout(x)
+        x = self.layer2(x)
+        return x
+
+
+class OneAttention(nn.Module):
+    """
+        Uses a single attention to connect branches.
+    """
+
+    def __init__(self, in_dim, hidden_size, dropout_rate=0.1):
+        super(OneAttention, self).__init__()
+
+        self.key1 = nn.Linear(in_dim, hidden_size, bias=False)
+        self.query1 = nn.Linear(in_dim, hidden_size, bias=False)
+        self.value1 = nn.Linear(in_dim, hidden_size, bias=False)
+
+        initialize_weight(self.key1)
+        initialize_weight(self.query1)
+        initialize_weight(self.value1)
+
+        self.att_dropout1 = nn.Dropout(dropout_rate)
+
+        self.output_layer = FeedForwardNetwork(hidden_size, hidden_size)
+
+
+
+    def forward(self, x1, cache=None):
+
+        q1 = self.query1(x1) # [b, t, N, hidden_size]
+        k1 = self.key1(x1) # [b, t, N, hidden_size]
+        v1 = self.value1(x1) # [b, t, N, hidden_size]
+
+        k1 = k1.transpose(2, 3)  # [b, t, hidden_size, N]
+
+        # Scaled Dot-Product Attention.
+        # Attention(Q, K, V) = softmax((QK^T)/sqrt(d_k))V
+        scale = x1.shape[-1] ** -0.5
+        q1.mul_(scale)
+
+        x1 = torch.matmul(q1, k1)  # [b, t, N, N]
+        x1 = torch.softmax(x1, dim=3)
+        x1 = self.att_dropout1(x1)
+        x1 = x1.matmul(v1)  # [b, t, N, hidden_size]
+
+        x = self.output_layer(x1) # [b, t, N, hidden_size]
+
+        return x
