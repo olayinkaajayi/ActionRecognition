@@ -17,7 +17,7 @@ from tqdm import tqdm
 from deepspeed.profiling.flops_profiler import FlopsProfiler
 from deepspeed.profiling.flops_profiler.profiler import get_model_profile
 
-from feeder_ntu import Feeder
+from models.feeder_ntu import Feeder
 
 # def calculate_flops(model, A, bs=8, T=64, M=2, V=25, C=3, sample_data=None):
 #     input_size = (bs, T, M*V, C)  # Change the input size according to your model's input shape

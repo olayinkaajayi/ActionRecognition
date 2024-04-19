@@ -11,7 +11,7 @@ import torch.nn.functional as F
 # from pos_encode import Position_encode
 from NAPE import Position_encode
 # from pos_encode_xx import Position_encode
-from training_utils_py2 import toNumpy
+from models.training_utils_py2 import toNumpy
 
 
 class TT_Pos_Encode(nn.Module):

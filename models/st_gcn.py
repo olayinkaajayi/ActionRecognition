@@ -6,7 +6,7 @@ from torch.nn import init
 
 from utils.tgcn import ConvTemporalGraphical
 from utils.graph import Graph
-from trans_pos_encode import TT_Pos_Encode
+from models.Improved_model.trans_pos_encode import TT_Pos_Encode
 
 
 class Model(nn.Module):
@@ -45,7 +45,7 @@ class Model(nn.Module):
         # Position Encoding
         hidden_size = 64
         num_nodes = A.size(-1)
-        self.num_person = A.size(1)
+        self.num_person = 2
         self.num_nodes = num_nodes
         if use_PE:
             self.just_project = just_project

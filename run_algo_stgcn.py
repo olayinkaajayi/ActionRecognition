@@ -9,18 +9,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-sys.path.append("node2vec/src")
-sys.path.append("ActionRecognition/models")
-# sys.path.append("ActionRecognition/models/Positional_encoding")
-sys.path.append("ActionRecognition/models/Learn_adjacency")
-sys.path.append("ActionRecognition/models/Improved_model")
+from pathlib import Path
+sys.path.append(f"{Path.home()}/codes/NAPE-wt-node2vec/src")
 
 # from joints_gnn_trans_new import Joints_GNN_Trans
-from pytorchtools import EarlyStopping
-from st_gcn import Model
+from models.pytorchtools import EarlyStopping
+from models.st_gcn import Model
 # from MMD_loss.combined_loss import Xent_n_SparseMMD # For Loss function
-from training_utils_py2 import *
-from arg_n_utils import arg_parse, get_labels
+from models.training_utils_py2 import *
+from models.Improved_model.arg_n_utils import arg_parse, get_labels
 
 
 def savefile(data,filename):
@@ -85,7 +82,6 @@ def main(args):
     np.random.seed(args.seed)
 
     ########Load data################
-    begin_path = os.getcwd()
     many_gpu = args.many_gpu #Decide if we use multiple GPUs or not
     device,USE_CUDA = use_cuda(args.use_cpu,many=many_gpu)
     batch_size = args.batch_size
@@ -107,7 +103,7 @@ def main(args):
 
     if args.use_saved_model:
         # To load model
-        model.load_state_dict(torch.load(begin_path+'/ActionRecognition/Saved_models/'+args.checkpoint,map_location=device))
+        model.load_state_dict(torch.load('Saved_models/'+args.checkpoint,map_location=device))
         print("USING SAVED MODEL!")
 
 
@@ -197,9 +193,9 @@ def main(args):
 
 
                     # if USE_CUDA and many_gpu:
-                    #     torch.save(model.module.state_dict(), begin_path+'/ActionRecognition/Saved_models/'+args.checkpoint)
+                    #     torch.save(model.module.state_dict(), 'Saved_models/'+args.checkpoint)
                     # else:
-                    #     torch.save(model.state_dict(), begin_path+'/ActionRecognition/Saved_models/'+args.checkpoint)
+                    #     torch.save(model.state_dict(), 'Saved_models/'+args.checkpoint)
 
         except KeyboardInterrupt as e:
             if writer is not None:
@@ -215,7 +211,7 @@ def main(args):
     model = Model(in_channels=in_dim, num_class=output_dim, graph_args=graph_args,edge_importance_weighting=False,
                 d=d, PE_name=args.checkpoint_PE, use_PE=args.use_PE, just_project=args.just_project, **kwargs)
 
-    model.load_state_dict(torch.load(begin_path+'/ActionRecognition/Saved_models/'+args.checkpoint,map_location=device))
+    model.load_state_dict(torch.load('Saved_models/'+args.checkpoint,map_location=device))
     if USE_CUDA: #To set it up for parallel usage of both GPUs (speeds up training)
         torch.cuda.manual_seed_all(args.seed)
         model = torch.nn.DataParallel(model) if many_gpu else model #use all free GPUs if needed

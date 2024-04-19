@@ -56,9 +56,9 @@ class EarlyStopping:
             # print('Validation loss decreased ({0:.6f} --> {1:.6f}).  Saving model ...'.format(self.val_loss_min,val_loss))
 
         if self.use_cuda and self.many_gpu:
-            torch.save(model.module.state_dict(), os.getcwd()+'/DHCS_implement/Saved_models/'+self.checkpoint)
+            torch.save(model.module.state_dict(), 'Saved_models/'+self.checkpoint)
         else:
-            torch.save(model.state_dict(), os.getcwd()+'/DHCS_implement/Saved_models/'+self.checkpoint)
+            torch.save(model.state_dict(), 'Saved_models/'+self.checkpoint)
 
         self.val_loss_min = val_loss
         self.val_acc_min = val_acc

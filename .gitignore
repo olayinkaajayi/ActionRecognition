@@ -1,7 +1,14 @@
-#common
+#unneeded
 *.pt
+__pycache__
 *.pyc
+Saved_models
+runs
 
 #scripts to run algorithms
-script_*
 *.sbatch
+*.sh
+
+#slurm job files
+*.err
+*.out

@@ -3,7 +3,7 @@ import argparse
 import torch
 from tqdm import tqdm
 import numpy as np
-from training_utils_py2 import load_data_from_file
+from models.training_utils_py2 import load_data_from_file
 
 
 def add_connection(A,indx_a,indx_b):
