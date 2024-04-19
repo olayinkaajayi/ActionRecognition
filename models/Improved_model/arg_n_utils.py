@@ -140,6 +140,8 @@ def arg_parse(notebook=False):
                         help='decide if we use skeleton0 for skeleton1 or zero padding (default: True)')
     parser.add_argument('--no-PE', dest='use_PE', action='store_false', default=True,
                         help='decides whether we use the learned position encoding or not.')
+    parser.add_argument('--just-project', dest='just_project', action='store_true', default=False,
+                        help='decides whether we add position encoding after projection.')
     parser.add_argument('--zeros', dest='repeat', action='store_false', default=True,
                         help='decides if we repeat the skeletons in person 1 for person 2.')
     parser.add_argument('--no-interact', dest='use_intr', action='store_false', default=True,

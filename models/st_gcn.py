@@ -29,7 +29,7 @@ class Model(nn.Module):
             :math:`M_{in}` is the number of instance in a frame.
     """
     def __init__(self, in_channels, num_class, graph_args,
-                 edge_importance_weighting, d=8, PE_name='', use_PE=True, **kwargs):
+                 edge_importance_weighting, d=8, PE_name='', use_PE=True, just_project=False, **kwargs):
         super().__init__()
 
         # load graph
@@ -39,15 +39,26 @@ class Model(nn.Module):
                          requires_grad=False)
         self.register_buffer('A', A)
 
+        self.data_bn = nn.BatchNorm1d(in_channels * A.size(1))
+
 
         # Position Encoding
         hidden_size = 64
         num_nodes = A.size(-1)
+        self.num_person = A.size(1)
+        self.num_nodes = num_nodes
         if use_PE:
-            PE = TT_Pos_Encode(hidden_size, num_nodes, d, PE_name)
-            pos_encode = PE.get_position_encoding(need_plot=False)
-            self.register_buffer('pos_encode', pos_encode)
-            print("\n\n!!!USING Position Encoding!!!\n\n")
+            self.just_project = just_project
+            if not just_project:
+                # We use this to check the effect of just projecting the
+                # features without adding the position encoding.
+                PE = TT_Pos_Encode(hidden_size, num_nodes, d, PE_name)
+                pos_encode = PE.get_position_encoding(need_plot=False)
+                self.register_buffer('pos_encode', pos_encode)
+                print("\n\n!!!USING Position Encoding!!!\n\n")
+            else:
+                self.pos_encode = True
+                print("\n\n!!!Projecting without Position Encoding!!!\n\n")
 
             self.proj_input = nn.Linear(in_channels,hidden_size,bias=False)
             init.xavier_uniform_(self.proj_input.weight)
@@ -62,7 +73,6 @@ class Model(nn.Module):
         spatial_kernel_size = A.size(0)
         temporal_kernel_size = 9
         kernel_size = (temporal_kernel_size, spatial_kernel_size)
-        self.data_bn = nn.BatchNorm1d(in_channels * A.size(1))
         kwargs0 = {k: v for k, v in kwargs.items() if k != 'dropout'}
         self.st_gcn_networks = nn.ModuleList((
             st_gcn(in_channels, 64, kernel_size, 1, residual=False, **kwargs0),
@@ -91,26 +101,36 @@ class Model(nn.Module):
 
     def forward(self, x):
 
+        # Reshape to suit batchnorm
+        N, T, MV, C = x.size()
+        M = self.num_person
+        V = self.num_nodes
+        x = x.view(N,T,M,V,C)
+        N, T, M, V, C = x.size()
+        x = x.permute(0, 2, 3, 4, 1).contiguous().view(N * M, V * C, T)
+        x = self.data_bn(x) # data normalization
+
         if self.pos_encode is not None:
+
+            # Reshape to suit position encoding
+            x = x.view(N, M, V, C, T).permute(0, 4, 1, 2, 3).contiguous().view(N, T, M*V, C)
+
             x = self.proj_input(x) # project only when using position encoding
             # we use .detach() for the position encoding
             # so it is not part of the computation graph when computing gradients.
-            pos_encode = self.pos_encode.detach()
-            x = x + pos_encode.repeat(2,1) #Add position encoding
+            if not self.just_project:
+                pos_encode = self.pos_encode.detach()
+                x = x + pos_encode.repeat(2,1) #Add position encoding
+            
+            # Reshape to suite model
+            N, T, MV, C = x.size()
+            x = x.view(N,T,2,-1,C).permute(0,2,3,4,1).contiguous().view(N * M, V * C, T)
 
-        # data normalization
-        N, T, V2, C = x.size()
-        x = x.view(N,T,2,-1,C)
-        N, T, M, V, C = x.size()
-        # x = x.permute(0, 4, 3, 1, 2).contiguous()
-        x = x.permute(0, 2, 3, 4, 1).contiguous()
-        x = x.view(N * M, V * C, T)
-        x = self.data_bn(x)
-        x = x.view(N, M, V, C, T)
-        x = x.permute(0, 1, 3, 4, 2).contiguous()
-        x = x.view(N * M, C, T, V)
+        # Final adjustment for model
+        x = x.view(N, M, V, C, T).permute(0, 1, 3, 4, 2).contiguous().view(N * M, C, T, V)
 
-        # forwad
+
+        # forward
         for gcn, importance in zip(self.st_gcn_networks, self.edge_importance):
             x, _ = gcn(x, self.A * importance)
 

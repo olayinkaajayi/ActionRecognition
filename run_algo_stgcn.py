@@ -10,10 +10,10 @@ import numpy as np
 import os
 
 sys.path.append("node2vec/src")
-sys.path.append("DHCS_implement/models")
-# sys.path.append("DHCS_implement/models/Positional_encoding")
-sys.path.append("DHCS_implement/models/Learn_adjacency")
-sys.path.append("DHCS_implement/models/Improved_model")
+sys.path.append("ActionRecognition/models")
+# sys.path.append("ActionRecognition/models/Positional_encoding")
+sys.path.append("ActionRecognition/models/Learn_adjacency")
+sys.path.append("ActionRecognition/models/Improved_model")
 
 # from joints_gnn_trans_new import Joints_GNN_Trans
 from pytorchtools import EarlyStopping
@@ -96,7 +96,7 @@ def main(args):
     graph_args = {"layout": "ntu-rgb+d", "strategy": "spatial"}
     kwargs = {"dropout": 0.5}
     model = Model(in_channels=in_dim, num_class=output_dim, graph_args=graph_args,edge_importance_weighting=False,
-                d=d, PE_name=args.checkpoint_PE, use_PE=args.use_PE, **kwargs)
+                d=d, PE_name=args.checkpoint_PE, use_PE=args.use_PE, just_project=args.just_project, **kwargs)
 
     
     if args.count_flop:
@@ -107,7 +107,7 @@ def main(args):
 
     if args.use_saved_model:
         # To load model
-        model.load_state_dict(torch.load(begin_path+'/DHCS_implement/Saved_models/'+args.checkpoint,map_location=device))
+        model.load_state_dict(torch.load(begin_path+'/ActionRecognition/Saved_models/'+args.checkpoint,map_location=device))
         print("USING SAVED MODEL!")
 
 
@@ -197,9 +197,9 @@ def main(args):
 
 
                     # if USE_CUDA and many_gpu:
-                    #     torch.save(model.module.state_dict(), begin_path+'/DHCS_implement/Saved_models/'+args.checkpoint)
+                    #     torch.save(model.module.state_dict(), begin_path+'/ActionRecognition/Saved_models/'+args.checkpoint)
                     # else:
-                    #     torch.save(model.state_dict(), begin_path+'/DHCS_implement/Saved_models/'+args.checkpoint)
+                    #     torch.save(model.state_dict(), begin_path+'/ActionRecognition/Saved_models/'+args.checkpoint)
 
         except KeyboardInterrupt as e:
             if writer is not None:
@@ -213,9 +213,9 @@ def main(args):
     del model
     print("\nGetting result from SAVED MODEL:")
     model = Model(in_channels=in_dim, num_class=output_dim, graph_args=graph_args,edge_importance_weighting=False,
-                d=d, PE_name=args.checkpoint_PE, use_PE=args.use_PE, **kwargs)
+                d=d, PE_name=args.checkpoint_PE, use_PE=args.use_PE, just_project=args.just_project, **kwargs)
 
-    model.load_state_dict(torch.load(begin_path+'/DHCS_implement/Saved_models/'+args.checkpoint,map_location=device))
+    model.load_state_dict(torch.load(begin_path+'/ActionRecognition/Saved_models/'+args.checkpoint,map_location=device))
     if USE_CUDA: #To set it up for parallel usage of both GPUs (speeds up training)
         torch.cuda.manual_seed_all(args.seed)
         model = torch.nn.DataParallel(model) if many_gpu else model #use all free GPUs if needed
