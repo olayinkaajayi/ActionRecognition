@@ -223,11 +223,12 @@ def main(args):
 
     test(model, test_graph, test_label, A, device, batch_size, criterion, topk=(1,args.topk),unsupervised=False)
 
-    PE_ext = '' if args.use_PE else '_no_PE'
+    PE_ext = '_PE' if args.use_PE and (not args.just_project) else ''
+    proj_ext = '_project' if args.just_project else ''
     repeat_ext = '' if args.repeat else '_zeros'
     intr_ext = '' if args.use_intr else '_no_interact'
     save_float_to_csv(early_stopping.best_accuracy,
-                    filename=f'{args.best_acc_filename}_{the_dataset}{PE_ext}{repeat_ext}{intr_ext}.csv')
+                    filename=f'{args.best_acc_filename}_{the_dataset}{proj_ext}{PE_ext}{repeat_ext}{intr_ext}.csv')
 
     if args.gather_data:
         savefile(train_acc,args.train_file_name)
@@ -239,16 +240,17 @@ if __name__ == '__main__':
     args = arg_parse()
 
     if args.avg_best_acc:
-        PE_ext = '' if args.use_PE else '_no_PE'
+        PE_ext = '_PE' if args.use_PE and (not args.just_project) else ''
+        proj_ext = '_project' if args.just_project else ''
         repeat_ext = '' if args.repeat else '_zeros'
         intr_ext = '' if args.use_intr else '_no_interact'
         the_dataset = f'NTU{args.num_class}_{args.datacase}'
-        scores = read_csv(filename=f'{args.best_acc_filename}_{the_dataset}{PE_ext}{repeat_ext}{intr_ext}.csv')
+        scores = read_csv(filename=f'{args.best_acc_filename}_{the_dataset}{proj_ext}{PE_ext}{repeat_ext}{intr_ext}.csv')
         avg = np.mean(scores)
         std = np.std(scores)
         print(f"Average Best Score for {the_dataset} is {avg:.1f}+/-{std:.2f}")
 
-        with open(f'{args.best_acc_filename}_{the_dataset}{PE_ext}{repeat_ext}{intr_ext}.txt','w+') as f:
+        with open(f'{args.best_acc_filename}_{the_dataset}{proj_ext}{PE_ext}{repeat_ext}{intr_ext}.txt','w+') as f:
             f.write(f"Statistics for Dataset: {the_dataset}\n")
             f.write(f"\nAverage={avg:.1f}\n")
             f.write(f"\nStandard deviation={std:.2f}")

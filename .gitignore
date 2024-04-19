@@ -1,3 +1,7 @@
 #common
 *.pt
 *.pyc
+
+#scripts to run algorithms
+script_*
+*.sbatch
