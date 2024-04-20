@@ -2,8 +2,11 @@
 *.pt
 __pycache__
 *.pyc
+*.cpython
 Saved_models
 runs
+best_*
+script_*
 
 #scripts to run algorithms
 *.sbatch
