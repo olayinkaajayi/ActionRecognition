@@ -39,9 +39,6 @@ class Model(nn.Module):
                          requires_grad=False)
         self.register_buffer('A', A)
 
-        self.data_bn = nn.BatchNorm1d(in_channels * A.size(1))
-
-
         # Position Encoding
         hidden_size = 64
         num_nodes = A.size(-1)
@@ -67,7 +64,7 @@ class Model(nn.Module):
             print("\n\n!!!NOT USING PE!!!\n\n")
             self.pos_encode = None
         
-
+        self.data_bn = nn.BatchNorm1d(in_channels * A.size(1))
 
         # build networks
         spatial_kernel_size = A.size(0)
@@ -100,20 +97,8 @@ class Model(nn.Module):
         self.fcn = nn.Conv2d(256, num_class, kernel_size=1)
 
     def forward(self, x):
-
-        # Reshape to suit batchnorm
-        N, T, MV, C = x.size()
-        M = self.num_person
-        V = self.num_nodes
-        x = x.view(N,T,M,V,C)
-        N, T, M, V, C = x.size()
-        x = x.permute(0, 2, 3, 4, 1).contiguous().view(N * M, V * C, T)
-        x = self.data_bn(x) # data normalization
-
+      
         if self.pos_encode is not None:
-
-            # Reshape to suit position encoding
-            x = x.view(N, M, V, C, T).permute(0, 4, 1, 2, 3).contiguous().view(N, T, M*V, C)
 
             x = self.proj_input(x) # project only when using position encoding
             # we use .detach() for the position encoding
@@ -122,10 +107,13 @@ class Model(nn.Module):
                 pos_encode = self.pos_encode.detach()
                 x = x + pos_encode.repeat(2,1) #Add position encoding
             
-            # Reshape to suite model
-            N, T, MV, C = x.size()
-            x = x.view(N,T,2,-1,C).permute(0,2,3,4,1).contiguous().view(N * M, V * C, T)
-
+            
+        # Reshape to suite batchnorm
+        N, T, MV, C = x.size()
+        M = self.num_person
+        V = self.num_nodes
+        x = x.view(N,T,M,V,C).permute(0,2,3,4,1).contiguous().view(N * M, V * C, T)
+        x = self.data_bn(x) # data normalization
         # Final adjustment for model
         x = x.view(N, M, V, C, T).permute(0, 1, 3, 4, 2).contiguous().view(N * M, C, T, V)
 
